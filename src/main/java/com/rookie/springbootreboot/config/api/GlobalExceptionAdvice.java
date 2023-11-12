@@ -1,5 +1,6 @@
 package com.rookie.springbootreboot.config.api;
 
+import com.rookie.springbootreboot.config.api.code.BaseErrorCode;
 import com.rookie.springbootreboot.config.api.code.reason.ErrorReason;
 import com.rookie.springbootreboot.config.api.code.status.ErrorStatus;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,6 +11,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingPathVariableException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -17,6 +20,7 @@ import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -30,10 +34,10 @@ import java.util.Optional;
 public class GlobalExceptionAdvice extends ResponseEntityExceptionHandler {
 
     /**
-     * Validation 위반 예외 핸들링 - Request에서 주로 발생
+     * JPA 연관관계 위반 예외 핸들링
      * @throwable RuntimeException
      * */
-    @ExceptionHandler
+    @ExceptionHandler(value = ConstraintViolationException.class)
     public ResponseEntity<Object> validation(ConstraintViolationException exception, WebRequest request) {
         String errorMessage = exception.getConstraintViolations().stream()
                 .map(ConstraintViolation::getMessage)
@@ -50,22 +54,39 @@ public class GlobalExceptionAdvice extends ResponseEntityExceptionHandler {
         BaseResponse<Object> body = BaseResponse.onFailure(errorCommonStatus.getCode(), errorCommonStatus.getMessage(), null);
         log.info(body.toString());
 
-        return super.handleExceptionInternal(
-                exception,
-                body,
-                headers,
-                errorCommonStatus.getHttpStatus(),
-                request
-        );
+        return ResponseEntity.status(errorCommonStatus.getHttpStatus()).body(body);
     }
 
     /**
-     * Request 에러 - 주로 파라미터
+     * Request Parameter 존재하지 않는 에러 (Query String)
+     * @exceptionHandlerFor MissingServletRequestParameterException
+     * */
+    @Override
+    protected ResponseEntity<Object> handleMissingServletRequestParameter(MissingServletRequestParameterException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        BaseResponse<Object> res = BaseResponse.onFailure(ErrorStatus.BAD_REQUEST.getCode(), ex.getMessage(), null);
+
+        return ResponseEntity.status(400).body(res);
+    }
+
+    /**
+     * Path Variable 존재하지 않는 에러
+     * @exceptionHandlerFor MissingPathVariableException
+     * */
+    @Override
+    protected ResponseEntity<Object> handleMissingPathVariable(MissingPathVariableException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        BaseResponse<Object> res = BaseResponse.onFailure(ErrorStatus.BAD_REQUEST.getCode(), ex.getMessage(), null);
+
+        return ResponseEntity.status(400).body(res);
+    }
+
+    /**
+     * Valid 어노테이션에서 걸리는 에러들
      * */
     @Override
     public ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException exception, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
 
         Map<String, String> errors = new LinkedHashMap<>();
+        log.error(errors.toString());
 
         // 한번에 에러가 여러가지 발생 할 수 있으므로 애러 매핑
         exception.getBindingResult().getFieldErrors()
@@ -75,7 +96,7 @@ public class GlobalExceptionAdvice extends ResponseEntityExceptionHandler {
                     errors.merge(fieldName, errorMessage, (existingErrorMessage, newErrorMessage) -> existingErrorMessage + ", " + newErrorMessage);
                 });
 
-        return handleExceptionInternalArgs(exception,HttpHeaders.EMPTY,ErrorStatus.valueOf("BAD_REQUEST"), request,errors);
+        return handleExceptionInternalArgs(exception,HttpHeaders.EMPTY,ErrorStatus.valueOf("BAD_REQUEST"), request, errors);
     }
 
     /**
@@ -85,13 +106,7 @@ public class GlobalExceptionAdvice extends ResponseEntityExceptionHandler {
         BaseResponse<Object> body = BaseResponse.onFailure(errorCommonStatus.getCode(),errorCommonStatus.getMessage(), errorArgs);
         log.info(body.toString());
 
-        return super.handleExceptionInternal(
-                exception,
-                body,
-                headers,
-                errorCommonStatus.getHttpStatus(),
-                request
-        );
+        return ResponseEntity.status(400).body(body);
     }
 
     /**
@@ -113,13 +128,7 @@ public class GlobalExceptionAdvice extends ResponseEntityExceptionHandler {
 
         log.info(body.toString());
 
-        return super.handleExceptionInternal(
-                exception,
-                body,
-                headers,
-                status,
-                request
-        );
+        return ResponseEntity.status(status).body(body);
     }
 
     /**
@@ -140,19 +149,6 @@ public class GlobalExceptionAdvice extends ResponseEntityExceptionHandler {
 
         BaseResponse<Object> body = BaseResponse.onFailure(reason.getCode(),reason.getMessage(),null);
 
-        WebRequest webRequest = new ServletWebRequest(request);
-        return super.handleExceptionInternal(
-                exception,
-                body,
-                headers,
-                reason.getHttpStatus(),
-                webRequest
-        );
+        return ResponseEntity.status(reason.getHttpStatus()).body(body);
     }
-
-
-
-
-
-
 }

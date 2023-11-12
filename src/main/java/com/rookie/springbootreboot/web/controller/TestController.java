@@ -4,9 +4,8 @@ import com.rookie.springbootreboot.config.api.BaseException;
 import com.rookie.springbootreboot.config.api.BaseResponse;
 import com.rookie.springbootreboot.config.api.code.status.ErrorStatus;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/test")
@@ -14,9 +13,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class TestController {
 
     @GetMapping("")
-    public BaseResponse<String> test(){
-        throw new BaseException(ErrorStatus.INTERNAL_SERVER_ERROR);
+    public BaseResponse<String> test(@RequestParam("test2") String test2){
+//        throw MethodArgumentNotValidException;
 
-//        return BaseResponse.onSuccess("Success");
+        return BaseResponse.onSuccess("Success");
     }
 }

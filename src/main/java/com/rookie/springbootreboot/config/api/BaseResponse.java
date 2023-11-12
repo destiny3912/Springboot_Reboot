@@ -16,7 +16,7 @@ import lombok.ToString;
 @JsonPropertyOrder({"isSuccess", "code", "message", "data"})
 @ToString
 public class BaseResponse<T> {
-//    @JsonProperty("isSuccess")
+
     private Boolean isSuccess;
     private String code;
     private String message;
