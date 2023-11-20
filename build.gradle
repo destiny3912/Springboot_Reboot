@@ -23,7 +23,7 @@ repositories {
 
 dependencies {
     // Database 관련은 없음 -> ORM은 알아서 선택하시길
-//    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     compileOnly 'org.projectlombok:lombok'
